@@ -1,37 +1,31 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
-import { io, Socket } from 'socket.io-client'
+import { useEffect } from 'react'
+import Pusher from 'pusher-js'
 
 interface UseSocketOptions {
-  rooms?:  string[]
-  events?: Record<string, (...args: any[]) => void>
+  channels?: string[]
+  events?:   Record<string, (...args: any[]) => void>
 }
 
-export function useSocket({ rooms = [], events = {} }: UseSocketOptions = {}) {
-  const socketRef = useRef<Socket | null>(null)
-
-  const emit = useCallback((event: string, ...args: any[]) => {
-    socketRef.current?.emit(event, ...args)
-  }, [])
-
+export function useSocket({ channels = [], events = {} }: UseSocketOptions = {}) {
   useEffect(() => {
-    const socket = io({ path: '/api/socket', transports: ['websocket', 'polling'] })
-    socketRef.current = socket
-
-    socket.on('connect', () => {
-      rooms.forEach((room) => socket.emit(room.startsWith('dept:') ? 'join:department' : 'join:counter', room.split(':')[1]))
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
     })
 
-    Object.entries(events).forEach(([event, handler]) => {
-      socket.on(event, handler)
+    const subs = channels.map((ch) => {
+      const channel = pusher.subscribe(ch)
+      Object.entries(events).forEach(([event, handler]) => {
+        channel.bind(event, handler)
+      })
+      return channel
     })
 
     return () => {
-      socket.disconnect()
+      subs.forEach((ch) => ch.unbind_all())
+      pusher.disconnect()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  return { emit, socket: socketRef.current }
 }

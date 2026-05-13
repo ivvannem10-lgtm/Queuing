@@ -5,7 +5,7 @@
  */
 import { prisma } from './db'
 import { format } from 'date-fns'
-import type { PriorityType, CounterStatus } from '@prisma/client'
+import type { CounterStatus } from '@/types'
 
 // ── Queue Number Generation ──────────────────────────────────────────────────
 

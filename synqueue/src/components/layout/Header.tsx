@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Bell } from 'lucide-react'
 import type { SessionUser } from '@/types'
 import { ROLE_LABELS } from '@/lib/utils'
-import { io as SocketIO } from 'socket.io-client'
+import Pusher from 'pusher-js'
 import { SOCKET_EVENTS } from '@/types'
 
 interface Props { user: SessionUser }
@@ -24,12 +24,14 @@ export function Header({ user }: Props) {
     loadStats()
     const interval = setInterval(loadStats, 15000)
 
-    const socket = SocketIO({ path: '/api/socket', transports: ['websocket', 'polling'] })
-    socket.on('connect', () => socket.emit('join:admin'))
-    socket.on(SOCKET_EVENTS.QUEUE_CREATED, () => { setHasNew(true); loadStats() })
-    socket.on(SOCKET_EVENTS.QUEUE_UPDATED, loadStats)
+    const pusher  = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+    })
+    const channel = pusher.subscribe('admin')
+    channel.bind(SOCKET_EVENTS.QUEUE_CREATED, () => { setHasNew(true); loadStats() })
+    channel.bind(SOCKET_EVENTS.QUEUE_UPDATED, loadStats)
 
-    return () => { socket.disconnect(); clearInterval(interval) }
+    return () => { pusher.disconnect(); clearInterval(interval) }
   }, [])
 
   return (

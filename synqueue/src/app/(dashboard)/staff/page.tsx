@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { io as SocketIO, Socket } from 'socket.io-client'
+import Pusher from 'pusher-js'
 import { useSession } from 'next-auth/react'
 import { signOut } from 'next-auth/react'
 import {
@@ -32,7 +32,7 @@ export default function StaffPage() {
   const [transferDept,  setTransferDept]  = useState('')
   const [transferReason,setTransferReason] = useState('')
   const [stats,         setStats]         = useState({ served: 0, skipped: 0, avgMs: 0 })
-  const socketRef = useRef<Socket | null>(null)
+  const pusherRef = useRef<Pusher | null>(null)
   const audioCtx  = useRef<AudioContext | null>(null)
 
   function playChime() {
@@ -83,22 +83,24 @@ export default function StaffPage() {
     await loadQueue(counter.id, counter.departmentId)
     loadStats()
 
-    // Connect socket
-    const socket = SocketIO({ path: '/api/socket', transports: ['websocket', 'polling'] })
-    socket.on('connect', () => {
-      socket.emit('join:department', counter.departmentId)
-      socket.emit('join:counter', counter.id)
+    // Connect to Pusher
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
     })
-    socket.on(SOCKET_EVENTS.QUEUE_CREATED,  () => loadQueue(counter.id, counter.departmentId))
-    socket.on(SOCKET_EVENTS.QUEUE_UPDATED,  () => loadQueue(counter.id, counter.departmentId))
-    socket.on(SOCKET_EVENTS.QUEUE_CALLED,   () => { loadQueue(counter.id, counter.departmentId); playChime() })
-    socketRef.current = socket
+    const deptCh    = pusher.subscribe(`dept-${counter.departmentId}`)
+    const counterCh = pusher.subscribe(`counter-${counter.id}`)
+    const reload    = () => loadQueue(counter.id, counter.departmentId)
+    deptCh.bind(SOCKET_EVENTS.QUEUE_CREATED, reload)
+    deptCh.bind(SOCKET_EVENTS.QUEUE_UPDATED, reload)
+    deptCh.bind(SOCKET_EVENTS.QUEUE_CALLED,  () => { reload(); playChime() })
+    counterCh.bind(SOCKET_EVENTS.QUEUE_CALLED, () => { reload(); playChime() })
+    pusherRef.current = pusher
   }
 
   useEffect(() => {
     loadCounters()
     fetch('/api/departments?status=ACTIVE').then((r) => r.json()).then((j) => setDepts(j.data ?? []))
-    return () => { socketRef.current?.disconnect() }
+    return () => { pusherRef.current?.disconnect() }
   }, [])
 
   async function action(type: string, extra?: Record<string, unknown>) {
@@ -237,8 +239,8 @@ export default function StaffPage() {
                     <div className="text-5xl sm:text-7xl font-black text-white tracking-tight">{servingQ.queueNumber}</div>
                     {servingQ.clientName && <div className="text-slate-300 mt-1">{servingQ.clientName}</div>}
                     {servingQ.isPriority && (
-                      <div className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border mt-2 ${PRIORITY_COLORS[servingQ.priorityType]}`}>
-                        <Star size={10} /> {PRIORITY_LABELS[servingQ.priorityType]}
+                      <div className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border mt-2 ${PRIORITY_COLORS[servingQ.priorityType as import('@/types').PriorityType]}`}>
+                        <Star size={10} /> {PRIORITY_LABELS[servingQ.priorityType as import('@/types').PriorityType]}
                       </div>
                     )}
                   </div>
@@ -355,7 +357,7 @@ export default function StaffPage() {
               <div className="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Recent</div>
               {historyQ.slice(0, 5).map((q) => (
                 <div key={q.id} className="px-4 py-2 flex items-center gap-3 opacity-50">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold border ${STATUS_COLORS[q.status]}`}>{q.status}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold border ${STATUS_COLORS[q.status as import('@/types').QueueStatus]}`}>{q.status}</span>
                   <span className="text-xs font-mono text-slate-400">{q.queueNumber}</span>
                 </div>
               ))}

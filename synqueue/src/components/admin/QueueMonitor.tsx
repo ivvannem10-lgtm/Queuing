@@ -53,7 +53,7 @@ export function QueueMonitor({ queues }: Props) {
                   {q.isPriority && (
                     <div className="flex items-center gap-1 mt-0.5">
                       <Star size={9} className="text-yellow-400" />
-                      <span className="text-[9px] text-yellow-400 font-bold">{PRIORITY_LABELS[q.priorityType]}</span>
+                      <span className="text-[9px] text-yellow-400 font-bold">{PRIORITY_LABELS[q.priorityType as import('@/types').PriorityType]}</span>
                     </div>
                   )}
                 </div>
@@ -68,7 +68,7 @@ export function QueueMonitor({ queues }: Props) {
                   <div className="text-xs text-slate-500">{formatTime(q.createdAt)}</div>
                 </div>
 
-                <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_COLORS[q.status]}`}>
+                <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_COLORS[q.status as import('@/types').QueueStatus]}`}>
                   {q.status}
                 </span>
               </motion.div>

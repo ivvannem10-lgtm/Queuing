@@ -44,7 +44,7 @@ export default function UsersPage() {
       name:   u.name,
       email:  u.email,
       password: '',
-      role:   u.role,
+      role:   u.role as import('@/types').Role,
       departmentIds: u.departments.map((d) => d.department.id),
       isActive: u.isActive,
     })
@@ -203,8 +203,8 @@ export default function UsersPage() {
                   </div>
                 </td>
                 <td className="px-5 py-3.5">
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full border ${ROLE_COLORS[u.role]}`}>
-                    {ROLE_LABELS[u.role]}
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full border ${ROLE_COLORS[u.role as import('@/types').Role]}`}>
+                    {ROLE_LABELS[u.role as import('@/types').Role]}
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-slate-400 text-xs">

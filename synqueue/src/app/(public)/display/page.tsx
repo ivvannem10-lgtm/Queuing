@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Maximize2, Volume2, VolumeX, Clock, Mic } from 'lucide-react'
-import { io as SocketIO } from 'socket.io-client'
+import Pusher from 'pusher-js'
 import { SOCKET_EVENTS } from '@/types'
 import type { Department, QueueWithRelations } from '@/types'
 
@@ -131,10 +131,12 @@ export default function DisplayPage() {
       window.speechSynthesis.onvoiceschanged = () => { synthReady.current = true }
     }
 
-    const socket = SocketIO({ path: '/api/socket', transports: ['websocket', 'polling'] })
-    socket.on('connect', () => socket.emit('join:display'))
+    const pusher  = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+    })
+    const channel = pusher.subscribe('display')
 
-    socket.on(SOCKET_EVENTS.QUEUE_CALLED, (data: any) => {
+    channel.bind(SOCKET_EVENTS.QUEUE_CALLED, (data: any) => {
       const q           = data.queue
       const counterName = data.counterName ?? 'the counter'
       const serviceName = q?.department?.name ?? 'the service'
@@ -146,11 +148,11 @@ export default function DisplayPage() {
       loadDisplay()
     })
 
-    socket.on(SOCKET_EVENTS.QUEUE_UPDATED,   loadDisplay)
-    socket.on(SOCKET_EVENTS.DISPLAY_REFRESH, loadDisplay)
+    channel.bind(SOCKET_EVENTS.QUEUE_UPDATED,   loadDisplay)
+    channel.bind(SOCKET_EVENTS.DISPLAY_REFRESH, loadDisplay)
 
     return () => {
-      socket.disconnect()
+      pusher.disconnect()
       clearInterval(tick)
       window.speechSynthesis?.cancel()
     }

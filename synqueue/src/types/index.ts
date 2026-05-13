@@ -1,14 +1,19 @@
 import type {
   User, Department, Counter, Queue, QueueLog,
   QueueTransfer, PrioritySetting, FrontlinerStatistic,
-  Role, QueueStatus, PriorityType, CounterStatus, DepartmentStatus,
 } from '@prisma/client'
+
+// ── String union types (schema uses String fields, not Prisma enums) ─────────
+export type Role             = 'SUPER_ADMIN' | 'ADMIN' | 'STAFF' | 'CLIENT'
+export type QueueStatus      = 'WAITING' | 'SERVING' | 'COMPLETED' | 'SKIPPED' | 'CANCELLED' | 'TRANSFERRED'
+export type PriorityType     = 'NONE' | 'SENIOR_CITIZEN' | 'PWD' | 'PREGNANT' | 'VIP'
+export type CounterStatus    = 'ACTIVE' | 'INACTIVE' | 'BREAK'
+export type DepartmentStatus = 'ACTIVE' | 'INACTIVE'
 
 // ── Re-exports ───────────────────────────────────────────────────────────────
 export type {
   User, Department, Counter, Queue, QueueLog,
   QueueTransfer, PrioritySetting, FrontlinerStatistic,
-  Role, QueueStatus, PriorityType, CounterStatus, DepartmentStatus,
 }
 
 // ── Augmented session user ───────────────────────────────────────────────────

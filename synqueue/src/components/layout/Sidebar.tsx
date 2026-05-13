@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
-import type { Role } from '@prisma/client'
+import type { Role } from '@/types'
 import {
   LayoutDashboard, Building2, Monitor, Users, BarChart2,
   Shield, Settings, LogOut, Tv, Layers, ChevronRight,

@@ -9,13 +9,14 @@ export const dynamic = 'force-dynamic'
 export default async function AuditLogsPage({
   searchParams,
 }: {
-  searchParams: { page?: string; action?: string }
+  searchParams: Promise<{ page?: string; action?: string }>
 }) {
-  const page  = parseInt(searchParams.page ?? '1')
+  const { page: pageParam, action } = await searchParams
+  const page  = parseInt(pageParam ?? '1')
   const take  = 50
   const skip  = (page - 1) * take
 
-  const where = searchParams.action ? { action: { contains: searchParams.action } } : {}
+  const where = action ? { action: { contains: action } } : {}
 
   const [logs, total] = await Promise.all([
     prisma.auditLog.findMany({

@@ -52,7 +52,7 @@ export function pad(n: number, length = 3): string {
 }
 
 // ── Role helpers ─────────────────────────────────────────────────────────────
-import type { Role } from '@prisma/client'
+import type { Role } from '@/types'
 
 export const ROLE_LABELS: Record<Role, string> = {
   SUPER_ADMIN: 'Super Admin',

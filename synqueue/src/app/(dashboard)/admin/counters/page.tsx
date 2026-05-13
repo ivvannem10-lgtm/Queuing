@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Pencil, Loader2, Monitor } from 'lucide-react'
-import type { Department, User } from '@/types'
-import type { Counter, CounterStatus } from '@prisma/client'
+import type { Department, User, CounterStatus } from '@/types'
+import type { Counter } from '@prisma/client'
 
 interface CounterWithRelations extends Counter { department: Department; staff: User | null }
 
@@ -23,7 +23,7 @@ export default function CountersPage() {
   const [showForm, setShowForm] = useState(false)
   const [editing,  setEditing]  = useState<CounterWithRelations | null>(null)
   const [saving,   setSaving]   = useState(false)
-  const [form, setForm] = useState({ name: '', number: 1, departmentId: '', staffId: '', status: 'INACTIVE' as CounterStatus })
+  const [form, setForm] = useState({ name: '', number: 1, departmentId: '', staffId: '', status: 'INACTIVE' as CounterStatus, })
 
   async function load() {
     const [cr, dr, ur] = await Promise.all([
@@ -46,7 +46,7 @@ export default function CountersPage() {
 
   function openEdit(c: CounterWithRelations) {
     setEditing(c)
-    setForm({ name: c.name, number: c.number, departmentId: c.departmentId, staffId: c.staffId ?? '', status: c.status })
+    setForm({ name: c.name, number: c.number, departmentId: c.departmentId, staffId: c.staffId ?? '', status: c.status as CounterStatus })
     setShowForm(true)
   }
 
@@ -145,7 +145,7 @@ export default function CountersPage() {
                 <td className="px-5 py-3.5 text-slate-300">{c.department.name}</td>
                 <td className="px-5 py-3.5 text-slate-300">{c.staff?.name ?? <span className="text-slate-500">Unassigned</span>}</td>
                 <td className="px-5 py-3.5">
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${STATUS_COLORS[c.status]}`}>{c.status}</span>
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${STATUS_COLORS[c.status as CounterStatus]}`}>{c.status}</span>
                 </td>
                 <td className="px-5 py-3.5 text-right">
                   <div className="flex items-center justify-end gap-2">
