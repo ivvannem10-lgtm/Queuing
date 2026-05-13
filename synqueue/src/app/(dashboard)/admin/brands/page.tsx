@@ -75,24 +75,35 @@ export default function BrandsPage() {
 
   async function handleCreateAdmin() {
     if (!adminModal) return
+    if (!adminForm.name.trim() || !adminForm.email.trim() || !adminForm.password.trim()) {
+      setAdminError('All fields are required'); return
+    }
     setAdminSaving(true)
     setAdminError('')
-    const res  = await fetch('/api/users', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        name:     adminForm.name,
-        email:    adminForm.email,
-        password: adminForm.password,
-        role:     'ADMIN',
-        brandId:  adminModal.id,
-      }),
-    })
-    const json = await res.json()
-    setAdminSaving(false)
-    if (!json.success) { setAdminError(json.error ?? 'Something went wrong'); return }
-    setAdminDone({ email: adminForm.email, password: adminForm.password })
-    load()
+    try {
+      const res  = await fetch('/api/users', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          name:     adminForm.name.trim(),
+          email:    adminForm.email.trim().toLowerCase(),
+          password: adminForm.password,
+          role:     'ADMIN',
+          brandId:  adminModal.id,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        setAdminError(json.error ?? `Server error (${res.status})`)
+        return
+      }
+      setAdminDone({ email: adminForm.email.trim().toLowerCase(), password: adminForm.password })
+      load()
+    } catch (e) {
+      setAdminError('Network error — please try again')
+    } finally {
+      setAdminSaving(false)
+    }
   }
 
   async function load() {
