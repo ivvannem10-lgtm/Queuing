@@ -1,0 +1,21 @@
+# dependencies
+synqueue/node_modules/
+
+# Next.js build output
+synqueue/.next/
+synqueue/out/
+
+# database
+synqueue/prisma/dev.db
+synqueue/prisma/dev.db-journal
+
+# environment variables
+synqueue/.env
+synqueue/.env.local
+synqueue/.env.production
+
+# OS
+.DS_Store
+
+# logs
+synqueue/npm-debug.log*

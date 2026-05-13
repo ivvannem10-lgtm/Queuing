@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.625rem;
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 6%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 14%;
+    --muted-foreground: 215 20% 55%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 15%;
+    --input: 217 33% 15%;
+    --ring: 217 91% 60%;
+  }
+
+  * {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  body {
+    @apply bg-navy-deep text-slate-100 font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1 { @apply text-3xl font-bold tracking-tight; }
+  h2 { @apply text-2xl font-semibold tracking-tight; }
+  h3 { @apply text-lg font-semibold; }
+}
+
+@layer components {
+  /* ── Scrollbars ──────────────────────────────── */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.slate.700') transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar       { width: 4px; height: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: theme('colors.slate.700'); border-radius: 4px; }
+
+  /* ── Glass card ──────────────────────────────── */
+  .glass {
+    @apply bg-navy-card/80 backdrop-blur-sm border border-white/5 rounded-xl;
+  }
+
+  /* ── Shimmer skeleton ────────────────────────── */
+  .skeleton {
+    @apply rounded-md bg-navy-card;
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite linear;
+    background-image: linear-gradient(
+      90deg,
+      theme('colors.navy.card') 0%,
+      theme('colors.navy.800') 50%,
+      theme('colors.navy.card') 100%
+    );
+  }
+
+  /* ── Priority ring ───────────────────────────── */
+  .priority-ring {
+    @apply ring-2 ring-purple-500/50 animate-priority-pulse;
+  }
+
+  /* ── Queue card call animation ───────────────── */
+  .queue-called {
+    @apply animate-queue-call;
+  }
+
+  /* ── Status dot ──────────────────────────────── */
+  .status-dot {
+    @apply inline-block w-2 h-2 rounded-full;
+  }
+  .status-dot-active  { @apply bg-green-400 shadow-[0_0_6px_theme('colors.green.400')]; }
+  .status-dot-idle    { @apply bg-amber-400; }
+  .status-dot-offline { @apply bg-slate-500; }
+
+  /* ── TV display ──────────────────────────────── */
+  .tv-number {
+    font-size: clamp(4rem, 12vw, 9rem);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+}
+
+@layer utilities {
+  .text-balance  { text-wrap: balance; }
+  .no-scrollbar  { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}

@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Users ────────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("STAFF")   // SUPER_ADMIN | ADMIN | STAFF | CLIENT
+  isActive  Boolean  @default(true)
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  departments   UserDepartment[]
+  counters      Counter[]             @relation("CounterStaff")
+  queueLogs     QueueLog[]
+  transfersMade QueueTransfer[]       @relation("TransferredBy")
+  statistics    FrontlinerStatistic[]
+  auditLogs     AuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+// ── Departments ──────────────────────────────────────────────────────────────
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String
+  prefix      String   @unique
+  description String?
+  status      String   @default("ACTIVE")  // ACTIVE | INACTIVE
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  counters   Counter[]
+  queues     Queue[]
+  users      UserDepartment[]
+  statistics DepartmentStatistic[]
+  transfers  QueueTransfer[]       @relation("TransferDept")
+
+  @@index([status])
+}
+
+model UserDepartment {
+  id           String @id @default(cuid())
+  userId       String
+  departmentId String
+  isPrimary    Boolean @default(false)
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, departmentId])
+}
+
+// ── Counters ─────────────────────────────────────────────────────────────────
+
+model Counter {
+  id           String   @id @default(cuid())
+  name         String
+  number       Int
+  departmentId String
+  staffId      String?
+  status       String   @default("INACTIVE")  // ACTIVE | INACTIVE | BREAK
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  department    Department         @relation(fields: [departmentId], references: [id])
+  staff         User?              @relation("CounterStaff", fields: [staffId], references: [id])
+  queues        Queue[]            @relation("CounterQueues")
+  logs          QueueLog[]
+  statistics    CounterStatistic[]
+  transfersFrom QueueTransfer[]    @relation("FromCounter")
+  transfersTo   QueueTransfer[]    @relation("ToCounter")
+
+  @@unique([departmentId, number])
+  @@index([departmentId, status])
+}
+
+// ── Queues ───────────────────────────────────────────────────────────────────
+
+model Queue {
+  id           String  @id @default(cuid())
+  queueNumber  String
+  clientName   String?
+  departmentId String
+  counterId    String?
+
+  status       String  @default("WAITING")  // WAITING|SERVING|COMPLETED|SKIPPED|CANCELLED|TRANSFERRED
+  isPriority   Boolean @default(false)
+  priorityType String  @default("NONE")     // NONE|SENIOR_CITIZEN|PWD|PREGNANT|VIP
+
+  isTransferred     Boolean @default(false)
+  transferredFromId String?
+
+  createdAt        DateTime  @default(now())
+  calledAt         DateTime?
+  servingStartedAt DateTime?
+  completedAt      DateTime?
+
+  waitingDurationMs Int?
+  servingDurationMs Int?
+
+  department   Department      @relation(fields: [departmentId], references: [id])
+  counter      Counter?        @relation("CounterQueues", fields: [counterId], references: [id])
+  logs         QueueLog[]
+  transferFrom QueueTransfer[] @relation("FromQueue")
+  transferTo   QueueTransfer[] @relation("ToQueue")
+
+  @@index([departmentId, status])
+  @@index([status, createdAt])
+  @@index([isPriority, status])
+}
+
+// ── Queue Logs ───────────────────────────────────────────────────────────────
+
+model QueueLog {
+  id        String   @id @default(cuid())
+  queueId   String
+  action    String
+  userId    String?
+  counterId String?
+  details   String?  // JSON string
+  timestamp DateTime @default(now())
+
+  queue   Queue    @relation(fields: [queueId], references: [id])
+  user    User?    @relation(fields: [userId], references: [id])
+  counter Counter? @relation(fields: [counterId], references: [id])
+
+  @@index([queueId])
+  @@index([timestamp])
+}
+
+// ── Queue Transfers ──────────────────────────────────────────────────────────
+
+model QueueTransfer {
+  id               String   @id @default(cuid())
+  fromQueueId      String
+  toQueueId        String
+  fromDepartmentId String
+  toDepartmentId   String
+  fromCounterId    String?
+  toCounterId      String?
+  transferredById  String
+  reason           String?
+  timestamp        DateTime @default(now())
+
+  fromQueue     Queue      @relation("FromQueue",     fields: [fromQueueId],     references: [id])
+  toQueue       Queue      @relation("ToQueue",       fields: [toQueueId],       references: [id])
+  transferredBy User       @relation("TransferredBy", fields: [transferredById], references: [id])
+  toDepartment  Department @relation("TransferDept",  fields: [toDepartmentId],  references: [id])
+  fromCounter   Counter?   @relation("FromCounter",   fields: [fromCounterId],   references: [id])
+  toCounter     Counter?   @relation("ToCounter",     fields: [toCounterId],     references: [id])
+
+  @@index([timestamp])
+}
+
+// ── Priority Settings ────────────────────────────────────────────────────────
+
+model PrioritySetting {
+  id            String   @id @default(cuid())
+  category      String   @unique  // NONE|SENIOR_CITIZEN|PWD|PREGNANT|VIP
+  enabled       Boolean  @default(true)
+  priorityLevel Int      @default(1)
+  servingRatio  Int      @default(2)
+  updatedAt     DateTime @updatedAt
+}
+
+// ── Department Counters (atomic daily queue number) ──────────────────────────
+
+model DepartmentCounter {
+  id              String @id @default(cuid())
+  departmentId    String
+  date            String
+  regularCounter  Int    @default(0)
+  priorityCounter Int    @default(0)
+
+  @@unique([departmentId, date])
+}
+
+// ── Statistics ───────────────────────────────────────────────────────────────
+
+model FrontlinerStatistic {
+  id               String @id @default(cuid())
+  userId           String
+  date             String
+  totalServed      Int    @default(0)
+  totalSkipped     Int    @default(0)
+  totalTransferred Int    @default(0)
+  totalCancelled   Int    @default(0)
+  avgServingMs     Int    @default(0)
+  fastestServingMs Int?
+  longestServingMs Int?
+  performanceScore Float  @default(0)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+  @@index([date])
+}
+
+model CounterStatistic {
+  id              String @id @default(cuid())
+  counterId       String
+  date            String
+  queuesServed    Int    @default(0)
+  avgHandlingMs   Int    @default(0)
+  efficiencyScore Float  @default(0)
+
+  counter Counter @relation(fields: [counterId], references: [id])
+
+  @@unique([counterId, date])
+  @@index([date])
+}
+
+model DepartmentStatistic {
+  id            String @id @default(cuid())
+  departmentId  String
+  date          String
+  totalQueues   Int    @default(0)
+  completed     Int    @default(0)
+  skipped       Int    @default(0)
+  cancelled     Int    @default(0)
+  transferred   Int    @default(0)
+  avgWaitMs     Int    @default(0)
+  avgHandlingMs Int    @default(0)
+  priorityCount Int    @default(0)
+
+  department Department @relation(fields: [departmentId], references: [id])
+
+  @@unique([departmentId, date])
+  @@index([date])
+}
+
+// ── System Settings ──────────────────────────────────────────────────────────
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+// ── Audit Logs ───────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  details   String?  // JSON string
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([timestamp])
+  @@index([userId])
+  @@index([entity])
+}
