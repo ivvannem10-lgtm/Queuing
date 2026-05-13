@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Pencil, Power, Loader2, Building, Users, Layers, X } from 'lucide-react'
+import { Plus, Pencil, Power, Loader2, Building, Users, Layers, X, Copy, Check, Link2 } from 'lucide-react'
 
 interface Brand {
   id:          string
@@ -26,6 +27,10 @@ export default function BrandsPage() {
   const [saving,    setSaving]    = useState(false)
   const [form,      setForm]      = useState(EMPTY_FORM)
   const [error,     setError]     = useState('')
+  const [copied,    setCopied]    = useState<string | null>(null)
+  const [mounted,   setMounted]   = useState(false)
+
+  useEffect(() => setMounted(true), [])
 
   async function load() {
     const res  = await fetch('/api/brands')
@@ -77,6 +82,14 @@ export default function BrandsPage() {
     if (!json.success) { setError(json.error ?? 'Something went wrong'); return }
     setShowForm(false)
     load()
+  }
+
+  function copyLink(b: Brand) {
+    const url = `${window.location.origin}/queue?brand=${b.slug}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(b.id)
+      setTimeout(() => setCopied(null), 2000)
+    })
   }
 
   async function toggleActive(b: Brand) {
@@ -186,6 +199,25 @@ export default function BrandsPage() {
                     </div>
                   </div>
 
+                  {/* Copy queue link */}
+                  <button
+                    onClick={() => copyLink(b)}
+                    className="w-full flex items-center justify-between gap-2 bg-white/4 hover:bg-white/8 border border-white/6 rounded-xl px-3 py-2 transition group"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Link2 size={11} className="text-slate-500 flex-shrink-0" />
+                      <span className="text-[11px] font-mono text-slate-500 truncate">
+                        /queue?brand={b.slug}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[11px] text-slate-500 group-hover:text-brand-light transition flex-shrink-0">
+                      {copied === b.id
+                        ? <><Check size={11} className="text-green-400" /><span className="text-green-400">Copied!</span></>
+                        : <><Copy size={11} /><span>Copy</span></>
+                      }
+                    </div>
+                  </button>
+
                   {/* Actions */}
                   <div className="flex gap-2">
                     <button
@@ -212,10 +244,11 @@ export default function BrandsPage() {
         </div>
       )}
 
-      {/* Create / Edit modal */}
-      <AnimatePresence>
+      {/* Create / Edit modal — rendered via portal to escape CSS transform stacking context */}
+      {mounted && createPortal(
+        <AnimatePresence>
         {showForm && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -326,7 +359,9 @@ export default function BrandsPage() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   )
 }
