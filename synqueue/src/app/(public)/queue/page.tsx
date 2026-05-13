@@ -93,15 +93,20 @@ export default function QueuePage() {
   return (
     <div className="min-h-screen bg-navy-deep">
       {/* Header */}
-      <header className="border-b border-white/5 bg-navy-mid/60 backdrop-blur-sm">
+      <header className="border-b border-white/5 bg-navy-mid/60 backdrop-blur-sm no-print">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white font-black text-sm">Q</div>
             <span className="font-bold text-white">SynQueue</span>
           </div>
-          <a href="/display" className="text-sm text-slate-400 hover:text-white transition flex items-center gap-1.5">
-            Live Display <ChevronRight size={14} />
-          </a>
+          <div className="flex items-center gap-4">
+            <a href="/display" className="text-sm text-slate-400 hover:text-white transition flex items-center gap-1.5">
+              Live Display <ChevronRight size={14} />
+            </a>
+            <a href="/login" className="text-sm bg-brand/15 hover:bg-brand/25 text-brand-light border border-brand/30 px-3 py-1.5 rounded-lg transition font-medium">
+              Staff Login
+            </a>
+          </div>
         </div>
       </header>
 
@@ -228,7 +233,7 @@ export default function QueuePage() {
               </div>
 
               {/* Ticket */}
-              <div ref={printRef} className="bg-gradient-to-br from-navy-card to-navy-mid border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+              <div ref={printRef} className="print-ticket bg-gradient-to-br from-navy-card to-navy-mid border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
                 {/* Top stripe */}
                 <div className={`h-2 ${ticket.isPriority ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-gradient-to-r from-brand to-blue-400'}`} />
 
@@ -287,7 +292,7 @@ export default function QueuePage() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 mt-5">
+              <div className="no-print flex gap-3 mt-5">
                 <button
                   onClick={handleReset}
                   className="flex-1 bg-navy-mid hover:bg-navy-card border border-white/8 text-white font-medium rounded-xl py-3 text-sm transition"
@@ -302,7 +307,7 @@ export default function QueuePage() {
                 </button>
               </div>
 
-              <a href="/display" className="block text-center text-sm text-brand-light hover:text-white mt-4 transition">
+              <a href="/display" className="no-print block text-center text-sm text-brand-light hover:text-white mt-4 transition">
                 Watch live queue display →
               </a>
             </motion.div>
