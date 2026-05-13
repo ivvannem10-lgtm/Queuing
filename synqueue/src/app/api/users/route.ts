@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs'
 import { ok, err, unauthorized, audit } from '@/lib/utils'
 import { z } from 'zod'
 
-const USER_LIMIT_PER_BRAND = 15
+const DEFAULT_USER_LIMIT = 15
 
 const CreateSchema = z.object({
   name:          z.string().min(1),
@@ -57,11 +57,15 @@ export async function POST(req: NextRequest) {
     ? (parsed.data.brandId ?? null)
     : session.user.brandId
 
-  // Enforce 15-user limit for admins (super admins are exempt)
+  // Enforce per-brand user limit for admins (super admins are exempt)
   if (session.user.role === 'ADMIN' && brandId) {
-    const count = await prisma.user.count({ where: { brandId } })
-    if (count >= USER_LIMIT_PER_BRAND) {
-      return err(`User limit reached. Your plan allows up to ${USER_LIMIT_PER_BRAND} users. Contact your Super Admin to add more.`, 403)
+    const [count, brand] = await Promise.all([
+      prisma.user.count({ where: { brandId } }),
+      prisma.brand.findUnique({ where: { id: brandId }, select: { userLimit: true } }),
+    ])
+    const limit = brand?.userLimit ?? DEFAULT_USER_LIMIT
+    if (count >= limit) {
+      return err(`User limit reached. Your plan allows up to ${limit} users. Contact your Super Admin to increase the limit.`, 403)
     }
   }
 

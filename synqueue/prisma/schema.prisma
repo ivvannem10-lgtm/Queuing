@@ -15,6 +15,7 @@ model Brand {
   slug        String   @unique
   logoUrl     String?
   accentColor String?  @default("#2563eb")
+  userLimit   Int      @default(15)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

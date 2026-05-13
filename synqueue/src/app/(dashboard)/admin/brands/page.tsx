@@ -10,12 +10,13 @@ interface Brand {
   slug:        string
   logoUrl:     string | null
   accentColor: string | null
+  userLimit:   number
   isActive:    boolean
   createdAt:   string
   _count:      { users: number; departments: number }
 }
 
-const EMPTY_FORM = { name: '', slug: '', logoUrl: '', accentColor: '#2563eb' }
+const EMPTY_FORM = { name: '', slug: '', logoUrl: '', accentColor: '#2563eb', userLimit: 15 }
 
 export default function BrandsPage() {
   const [brands,    setBrands]    = useState<Brand[]>([])
@@ -44,7 +45,7 @@ export default function BrandsPage() {
 
   function openEdit(b: Brand) {
     setEditing(b)
-    setForm({ name: b.name, slug: b.slug, logoUrl: b.logoUrl ?? '', accentColor: b.accentColor ?? '#2563eb' })
+    setForm({ name: b.name, slug: b.slug, logoUrl: b.logoUrl ?? '', accentColor: b.accentColor ?? '#2563eb', userLimit: b.userLimit ?? 15 })
     setError('')
     setShowForm(true)
   }
@@ -147,7 +148,11 @@ export default function BrandsPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-navy-mid rounded-lg px-3 py-2 flex items-center gap-2">
                     <Users size={12} className="text-slate-400" />
-                    <span className="text-xs text-slate-300"><strong className="text-white">{b._count.users}</strong> users</span>
+                    <span className="text-xs text-slate-300">
+                      <strong className={b._count.users >= b.userLimit ? 'text-red-400' : 'text-white'}>{b._count.users}</strong>
+                      <span className="text-slate-500"> / {b.userLimit}</span>
+                      <span className="ml-1">users</span>
+                    </span>
                   </div>
                   <div className="bg-navy-mid rounded-lg px-3 py-2 flex items-center gap-2">
                     <Layers size={12} className="text-slate-400" />
@@ -251,6 +256,20 @@ export default function BrandsPage() {
                       className="flex-1 bg-navy-mid border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:ring-2 focus:ring-brand/60"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    User Limit <span className="text-slate-500 text-xs">(max staff accounts for this brand)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={form.userLimit}
+                    onChange={(e) => setForm((f) => ({ ...f, userLimit: Math.max(1, parseInt(e.target.value) || 1) }))}
+                    className="w-full bg-navy-mid border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand/60"
+                  />
                 </div>
 
                 <div>
