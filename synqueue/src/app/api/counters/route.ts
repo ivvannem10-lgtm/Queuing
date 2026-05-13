@@ -14,13 +14,18 @@ const CreateSchema = z.object({
 })
 
 export async function GET(req: NextRequest) {
-  const session    = await getServerSession(authOptions)
-  const mineOnly   = req.nextUrl.searchParams.get('mine') === 'true'
-  const deptId     = req.nextUrl.searchParams.get('departmentId')
+  const session  = await getServerSession(authOptions)
+  const mineOnly = req.nextUrl.searchParams.get('mine') === 'true'
+  const deptId   = req.nextUrl.searchParams.get('departmentId')
 
   const where: any = {}
   if (deptId)   where.departmentId = deptId
   if (mineOnly && session) where.staffId = session.user.id
+
+  // Scope counters to admin's brand via the department
+  if (session?.user.role === 'ADMIN' && session.user.brandId) {
+    where.department = { brandId: session.user.brandId }
+  }
 
   const counters = await prisma.counter.findMany({
     where: { ...where, isActive: true },
@@ -43,8 +48,16 @@ export async function POST(req: NextRequest) {
   const parsed = CreateSchema.safeParse(body)
   if (!parsed.success) return err(parsed.error.message)
 
+  // Verify the department belongs to the admin's brand
+  if (session.user.role === 'ADMIN' && session.user.brandId) {
+    const dept = await prisma.department.findFirst({
+      where: { id: parsed.data.departmentId, brandId: session.user.brandId },
+    })
+    if (!dept) return err('Department not found in your brand', 403)
+  }
+
   const counter = await prisma.counter.create({
-    data: parsed.data,
+    data:    parsed.data,
     include: { department: true, staff: true },
   })
 

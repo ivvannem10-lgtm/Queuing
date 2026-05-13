@@ -13,17 +13,22 @@ const CreateSchema = z.object({
 })
 
 export async function GET(req: NextRequest) {
+  const session   = await getServerSession(authOptions)
   const status    = req.nextUrl.searchParams.get('status')
   const brandSlug = req.nextUrl.searchParams.get('brand')
 
   const where: any = {}
   if (status) where.status = status
 
-  // Filter by brand slug if provided (for multi-brand queue page)
   if (brandSlug) {
+    // Public queue page: filter by brand slug
     const brand = await prisma.brand.findUnique({ where: { slug: brandSlug } })
     where.brandId = brand?.id ?? '__none__'
+  } else if (session?.user.role === 'ADMIN' && session.user.brandId) {
+    // Authenticated admin: scope to their brand only
+    where.brandId = session.user.brandId
   }
+  // Super Admin with no brandSlug param: sees all departments
 
   const departments = await prisma.department.findMany({
     where,
@@ -42,10 +47,16 @@ export async function POST(req: NextRequest) {
   const parsed = CreateSchema.safeParse(body)
   if (!parsed.success) return err(parsed.error.message)
 
-  const exists = await prisma.department.findFirst({ where: { prefix: parsed.data.prefix } })
-  if (exists) return err('A department with this prefix already exists')
+  // Prefix must be unique within a brand (not globally, to allow same prefix across brands)
+  const existing = await prisma.department.findFirst({
+    where: {
+      prefix:  parsed.data.prefix,
+      brandId: session.user.role === 'ADMIN' ? (session.user.brandId ?? undefined) : undefined,
+    },
+  })
+  if (existing) return err('A department with this prefix already exists in your brand')
 
-  // Auto-assign brand from admin's session
+  // Auto-assign the admin's brandId; Super Admin has no brand restriction
   const brandId = session.user.role === 'ADMIN' ? (session.user.brandId ?? null) : null
 
   const dept = await prisma.department.create({ data: { ...parsed.data, brandId } })
