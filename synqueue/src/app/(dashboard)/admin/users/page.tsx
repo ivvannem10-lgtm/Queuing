@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { Plus, Pencil, Loader2, Search, ShieldCheck } from 'lucide-react'
 import type { User, Department, Role } from '@/types'
@@ -18,6 +19,7 @@ export default function UsersPage() {
   const [showForm,setShowForm] = useState(false)
   const [editing, setEditing]  = useState<UserWithDepts | null>(null)
   const [saving,  setSaving]   = useState(false)
+  const [mounted, setMounted]  = useState(false)
   const [form, setForm] = useState({
     name: '', email: '', password: '', role: 'STAFF' as Role, departmentIds: [] as string[], isActive: true,
   })
@@ -30,7 +32,7 @@ export default function UsersPage() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load(); setMounted(true) }, [])
 
   function openCreate() {
     setEditing(null)
@@ -99,77 +101,82 @@ export default function UsersPage() {
         />
       </div>
 
-      {/* Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-            className="bg-navy-card border border-white/10 rounded-2xl p-6 w-full max-w-lg shadow-2xl overflow-y-auto max-h-[90vh]"
-          >
-            <h2 className="text-lg font-bold text-white mb-5">{editing ? 'Edit User' : 'Create User'}</h2>
-            <div className="space-y-4">
-              {[
-                { key: 'name',  label: 'Full Name', type: 'text',     ph: 'Juan dela Cruz' },
-                { key: 'email', label: 'Email',      type: 'email',    ph: 'juan@school.edu' },
-                { key: 'password', label: editing ? 'New Password (leave blank to keep)' : 'Password', type: 'password', ph: '••••••••' },
-              ].map(({ key, label, type, ph }) => (
-                <div key={key}>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">{label}</label>
-                  <input
-                    type={type}
-                    value={(form as any)[key]}
-                    onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                    placeholder={ph}
-                    className="w-full bg-navy-mid border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand/60"
-                  />
-                </div>
-              ))}
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Role</label>
-                <select
-                  value={form.role}
-                  onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as Role }))}
-                  className="w-full bg-navy-mid border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand/60"
-                >
-                  {ROLES.filter((r) => r !== 'CLIENT').map((r) => (
-                    <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Departments</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {depts.map((d) => (
-                    <label key={d.id} className="flex items-center gap-2 cursor-pointer">
+      {/* Modal — portal escapes animate-fade-in transform stacking context */}
+      {mounted && createPortal(
+        <>
+          {showForm && (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                className="bg-navy-card border border-white/10 rounded-2xl p-6 w-full max-w-lg shadow-2xl overflow-y-auto max-h-[90vh]"
+              >
+                <h2 className="text-lg font-bold text-white mb-5">{editing ? 'Edit User' : 'Create User'}</h2>
+                <div className="space-y-4">
+                  {[
+                    { key: 'name',  label: 'Full Name', type: 'text',     ph: 'Juan dela Cruz' },
+                    { key: 'email', label: 'Email',      type: 'email',    ph: 'juan@school.edu' },
+                    { key: 'password', label: editing ? 'New Password (leave blank to keep)' : 'Password', type: 'password', ph: '••••••••' },
+                  ].map(({ key, label, type, ph }) => (
+                    <div key={key}>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">{label}</label>
                       <input
-                        type="checkbox"
-                        checked={form.departmentIds.includes(d.id)}
-                        onChange={(e) => setForm((f) => ({
-                          ...f,
-                          departmentIds: e.target.checked
-                            ? [...f.departmentIds, d.id]
-                            : f.departmentIds.filter((id) => id !== d.id),
-                        }))}
-                        className="rounded border-slate-600 bg-navy-mid"
+                        type={type}
+                        value={(form as any)[key]}
+                        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                        placeholder={ph}
+                        className="w-full bg-navy-mid border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand/60"
                       />
-                      <span className="text-sm text-slate-300">{d.name}</span>
-                    </label>
+                    </div>
                   ))}
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Role</label>
+                    <select
+                      value={form.role}
+                      onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as Role }))}
+                      className="w-full bg-navy-mid border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand/60"
+                    >
+                      {ROLES.filter((r) => r !== 'CLIENT').map((r) => (
+                        <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Departments</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {depts.map((d) => (
+                        <label key={d.id} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={form.departmentIds.includes(d.id)}
+                            onChange={(e) => setForm((f) => ({
+                              ...f,
+                              departmentIds: e.target.checked
+                                ? [...f.departmentIds, d.id]
+                                : f.departmentIds.filter((id) => id !== d.id),
+                            }))}
+                            className="rounded border-slate-600 bg-navy-mid"
+                          />
+                          <span className="text-sm text-slate-300">{d.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
+                <div className="flex gap-3 mt-6">
+                  <button onClick={() => setShowForm(false)} className="flex-1 bg-navy-mid border border-white/8 text-white rounded-lg py-2.5 text-sm">Cancel</button>
+                  <button onClick={handleSave} disabled={saving || !form.name || !form.email}
+                    className="flex-1 flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark disabled:opacity-50 text-white rounded-lg py-2.5 text-sm transition">
+                    {saving && <Loader2 size={14} className="animate-spin" />}
+                    {editing ? 'Save Changes' : 'Create User'}
+                  </button>
+                </div>
+              </motion.div>
             </div>
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowForm(false)} className="flex-1 bg-navy-mid border border-white/8 text-white rounded-lg py-2.5 text-sm">Cancel</button>
-              <button onClick={handleSave} disabled={saving || !form.name || !form.email}
-                className="flex-1 flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark disabled:opacity-50 text-white rounded-lg py-2.5 text-sm transition">
-                {saving && <Loader2 size={14} className="animate-spin" />}
-                {editing ? 'Save Changes' : 'Create User'}
-              </button>
-            </div>
-          </motion.div>
-        </div>
+          )}
+        </>,
+        document.body
       )}
 
       {/* Table */}

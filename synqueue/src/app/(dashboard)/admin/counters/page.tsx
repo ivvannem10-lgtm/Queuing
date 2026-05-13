@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { Plus, Pencil, Loader2, Monitor } from 'lucide-react'
 import type { Department, User, CounterStatus } from '@/types'
@@ -23,6 +24,7 @@ export default function CountersPage() {
   const [showForm, setShowForm] = useState(false)
   const [editing,  setEditing]  = useState<CounterWithRelations | null>(null)
   const [saving,   setSaving]   = useState(false)
+  const [mounted,  setMounted]  = useState(false)
   const [form, setForm] = useState({ name: '', number: 1, departmentId: '', staffId: '', status: 'INACTIVE' as CounterStatus, })
 
   async function load() {
@@ -36,7 +38,7 @@ export default function CountersPage() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load(); setMounted(true) }, [])
 
   function openCreate() {
     setEditing(null)
@@ -76,8 +78,10 @@ export default function CountersPage() {
         </button>
       </div>
 
-      {showForm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {mounted && createPortal(
+        <>
+        {showForm && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             className="bg-navy-card border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
             <h2 className="text-lg font-bold text-white mb-5">{editing ? 'Edit Counter' : 'New Counter'}</h2>
@@ -119,6 +123,9 @@ export default function CountersPage() {
             </div>
           </motion.div>
         </div>
+        )}
+        </>,
+        document.body
       )}
 
       <div className="glass overflow-hidden">

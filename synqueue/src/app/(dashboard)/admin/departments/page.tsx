@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Pencil, Trash2, ToggleLeft, ToggleRight,
@@ -32,7 +33,8 @@ export default function DepartmentsPage() {
   const [deleting,    setDeleting]    = useState<string | null>(null)
   const [toggling,    setToggling]    = useState<string | null>(null)
   const [toasts,      setToasts]      = useState<Toast[]>([])
-  const [form, setForm] = useState({ name: '', prefix: '', description: '', sortOrder: 1 })
+  const [form, setForm]   = useState({ name: '', prefix: '', description: '', sortOrder: 1 })
+  const [mounted, setMounted] = useState(false)
 
   /* ── Data ─────────────────────────────────────────────── */
   async function load() {
@@ -42,7 +44,7 @@ export default function DepartmentsPage() {
     setDepartments(json.data ?? [])
     setLoading(false)
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { load(); setMounted(true) }, [])
 
   /* ── Toast ────────────────────────────────────────────── */
   function toast(msg: string, type: 'success' | 'error' = 'success') {
@@ -152,10 +154,11 @@ export default function DepartmentsPage() {
         </button>
       </div>
 
-      {/* Create / Edit modal */}
-      <AnimatePresence>
+      {/* Create / Edit modal — portal escapes animate-fade-in transform stacking context */}
+      {mounted && createPortal(
+        <AnimatePresence>
         {showForm && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 12 }}
               animate={{ opacity: 1, scale: 1,    y: 0 }}
@@ -274,7 +277,9 @@ export default function DepartmentsPage() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Department cards grid */}
       {loading ? (
