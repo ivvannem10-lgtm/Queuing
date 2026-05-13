@@ -6,7 +6,7 @@ import { Plus, Pencil, Loader2, Search, ShieldCheck } from 'lucide-react'
 import type { User, Department, Role } from '@/types'
 import { ROLE_LABELS, ROLE_COLORS } from '@/lib/utils'
 
-const ROLES: Role[] = ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'CLIENT']
+const ROLES: Role[] = ['ADMIN', 'STAFF', 'CLIENT']
 
 interface UserWithDepts extends User { departments: { department: Department }[] }
 

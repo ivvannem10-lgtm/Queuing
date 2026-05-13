@@ -12,7 +12,7 @@ const CreateSchema = z.object({
   name:          z.string().min(1),
   email:         z.string().email(),
   password:      z.string().min(6),
-  role:          z.enum(['SUPER_ADMIN', 'ADMIN', 'STAFF', 'CLIENT']).default('STAFF'),
+  role:          z.enum(['ADMIN', 'STAFF', 'CLIENT']).default('STAFF'),
   departmentIds: z.array(z.string()).default([]),
   isActive:      z.boolean().default(true),
   brandId:       z.string().optional(),
