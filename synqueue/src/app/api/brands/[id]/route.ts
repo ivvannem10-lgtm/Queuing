@@ -8,6 +8,7 @@ import { z } from 'zod'
 const UpdateSchema = z.object({
   name:        z.string().min(1).max(100).optional(),
   logoUrl:     z.string().url().optional().or(z.literal('')),
+  customLink:  z.string().url().optional().or(z.literal('')),
   accentColor: z.string().optional(),
   userLimit:   z.number().int().min(1).max(500).optional(),
   isActive:    z.boolean().optional(),
@@ -26,7 +27,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     where: { id },
     data:  {
       ...(parsed.data.name        !== undefined && { name:        parsed.data.name }),
-      ...(parsed.data.logoUrl     !== undefined && { logoUrl:     parsed.data.logoUrl || null }),
+      ...(parsed.data.logoUrl     !== undefined && { logoUrl:     parsed.data.logoUrl    || null }),
+      ...(parsed.data.customLink  !== undefined && { customLink:  parsed.data.customLink || null }),
       ...(parsed.data.accentColor !== undefined && { accentColor: parsed.data.accentColor }),
       ...(parsed.data.userLimit   !== undefined && { userLimit:   parsed.data.userLimit }),
       ...(parsed.data.isActive    !== undefined && { isActive:    parsed.data.isActive }),

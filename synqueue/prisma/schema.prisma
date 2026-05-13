@@ -14,6 +14,7 @@ model Brand {
   name        String
   slug        String   @unique
   logoUrl     String?
+  customLink  String?
   accentColor String?  @default("#2563eb")
   userLimit   Int      @default(15)
   isActive    Boolean  @default(true)

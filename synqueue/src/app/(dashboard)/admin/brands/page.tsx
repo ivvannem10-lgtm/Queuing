@@ -10,6 +10,7 @@ interface Brand {
   name:        string
   slug:        string
   logoUrl:     string | null
+  customLink:  string | null
   accentColor: string | null
   userLimit:   number
   isActive:    boolean
@@ -17,7 +18,7 @@ interface Brand {
   _count:      { users: number; departments: number }
 }
 
-const EMPTY_FORM = { name: '', slug: '', logoUrl: '', accentColor: '#2563eb', userLimit: 15 }
+const EMPTY_FORM = { name: '', slug: '', customLink: '', accentColor: '#2563eb', userLimit: 15 }
 
 export default function BrandsPage() {
   const [brands,    setBrands]    = useState<Brand[]>([])
@@ -50,7 +51,7 @@ export default function BrandsPage() {
 
   function openEdit(b: Brand) {
     setEditing(b)
-    setForm({ name: b.name, slug: b.slug, logoUrl: b.logoUrl ?? '', accentColor: b.accentColor ?? '#2563eb', userLimit: b.userLimit ?? 15 })
+    setForm({ name: b.name, slug: b.slug, customLink: b.customLink ?? '', accentColor: b.accentColor ?? '#2563eb', userLimit: b.userLimit ?? 15 })
     setError('')
     setShowForm(true)
   }
@@ -85,7 +86,7 @@ export default function BrandsPage() {
   }
 
   function copyLink(b: Brand) {
-    const url = `${window.location.origin}/queue?brand=${b.slug}`
+    const url = b.customLink || `${window.location.origin}/queue?brand=${b.slug}`
     navigator.clipboard.writeText(url).then(() => {
       setCopied(b.id)
       setTimeout(() => setCopied(null), 2000)
@@ -207,7 +208,7 @@ export default function BrandsPage() {
                     <div className="flex items-center gap-2 min-w-0">
                       <Link2 size={11} className="text-slate-500 flex-shrink-0" />
                       <span className="text-[11px] font-mono text-slate-500 truncate">
-                        /queue?brand={b.slug}
+                        {b.customLink || `/queue?brand=${b.slug}`}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 text-[11px] text-slate-500 group-hover:text-brand-light transition flex-shrink-0">
@@ -329,14 +330,17 @@ export default function BrandsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Logo URL <span className="text-slate-500 text-xs">(optional)</span>
+                    Custom Queue Link <span className="text-slate-500 text-xs">(optional — share this with the company)</span>
                   </label>
                   <input
-                    value={form.logoUrl}
-                    onChange={(e) => setForm((f) => ({ ...f, logoUrl: e.target.value }))}
-                    placeholder="https://example.com/logo.png"
+                    value={form.customLink}
+                    onChange={(e) => setForm((f) => ({ ...f, customLink: e.target.value }))}
+                    placeholder="https://queue.yourcompany.com"
                     className="w-full bg-navy-mid border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand/60"
                   />
+                  <p className="text-xs text-slate-600 mt-1">
+                    Leave blank to use the default <span className="font-mono">/queue?brand={form.slug || 'slug'}</span> link.
+                  </p>
                 </div>
               </div>
 

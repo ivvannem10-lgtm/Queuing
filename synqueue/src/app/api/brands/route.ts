@@ -9,6 +9,7 @@ const CreateSchema = z.object({
   name:        z.string().min(1).max(100),
   slug:        z.string().min(2).max(50).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers, and hyphens only'),
   logoUrl:     z.string().url().optional().or(z.literal('')),
+  customLink:  z.string().url().optional().or(z.literal('')),
   accentColor: z.string().optional(),
   userLimit:   z.number().int().min(1).max(500).default(15),
 })
@@ -48,7 +49,8 @@ export async function POST(req: NextRequest) {
     data: {
       name:        parsed.data.name,
       slug:        parsed.data.slug,
-      logoUrl:     parsed.data.logoUrl || null,
+      logoUrl:     parsed.data.logoUrl  || null,
+      customLink:  parsed.data.customLink || null,
       accentColor: parsed.data.accentColor || '#2563eb',
       userLimit:   parsed.data.userLimit,
     },
