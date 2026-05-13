@@ -330,17 +330,31 @@ export default function BrandsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Custom Queue Link <span className="text-slate-500 text-xs">(optional — share this with the company)</span>
+                    Custom Queue Link <span className="text-slate-500 text-xs">(optional)</span>
                   </label>
                   <input
                     value={form.customLink}
                     onChange={(e) => setForm((f) => ({ ...f, customLink: e.target.value }))}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim()
+                      if (v && !v.startsWith('http://') && !v.startsWith('https://')) {
+                        setForm((f) => ({ ...f, customLink: `https://${v}` }))
+                      }
+                    }}
                     placeholder="https://queue.yourcompany.com"
                     className="w-full bg-navy-mid border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand/60"
                   />
-                  <p className="text-xs text-slate-600 mt-1">
-                    Leave blank to use the default <span className="font-mono">/queue?brand={form.slug || 'slug'}</span> link.
-                  </p>
+                  <div className="mt-2 bg-navy-mid border border-white/5 rounded-lg px-3 py-2.5 space-y-1">
+                    <p className="text-xs text-slate-400 font-medium">What this field does:</p>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      This stores a link you want to <strong className="text-slate-400">display and share</strong> with the company.
+                      It does <strong className="text-slate-400">not</strong> create a new domain or redirect — the queue always runs at{' '}
+                      <span className="font-mono text-brand-light">synqueue.vercel.app/queue?brand={form.slug || 'slug'}</span>.
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      To point a real domain (e.g. <span className="font-mono">queue.acme.com</span>) at SynQueue, add it as a custom domain in your Vercel project settings.
+                    </p>
+                  </div>
                 </div>
               </div>
 
