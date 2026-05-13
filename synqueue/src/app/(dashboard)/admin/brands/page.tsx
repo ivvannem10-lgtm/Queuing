@@ -121,68 +121,90 @@ export default function BrandsPage() {
                 key={b.id}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`glass p-5 flex flex-col gap-4 ${!b.isActive ? 'opacity-50' : ''}`}
+                className={`relative overflow-hidden rounded-2xl border border-white/8 bg-navy-card transition-all ${!b.isActive ? 'opacity-50 grayscale' : 'hover:border-white/14'}`}
               >
-                {/* Header */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-lg flex-shrink-0"
-                      style={{ background: b.accentColor ?? '#2563eb' }}
-                    >
-                      {b.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="font-bold text-white leading-tight">{b.name}</div>
-                      <div className="text-xs text-slate-500 font-mono">/{b.slug}</div>
-                    </div>
-                  </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
-                    b.isActive ? 'bg-green-500/15 text-green-400' : 'bg-slate-500/15 text-slate-400'
-                  }`}>
-                    {b.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
+                {/* Accent top bar */}
+                <div className="h-1 w-full" style={{ background: b.accentColor ?? '#2563eb' }} />
 
-                {/* Stats */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-navy-mid rounded-lg px-3 py-2 flex items-center gap-2">
-                    <Users size={12} className="text-slate-400" />
-                    <span className="text-xs text-slate-300">
-                      <strong className={b._count.users >= b.userLimit ? 'text-red-400' : 'text-white'}>{b._count.users}</strong>
-                      <span className="text-slate-500"> / {b.userLimit}</span>
-                      <span className="ml-1">users</span>
+                <div className="p-5 flex flex-col gap-4">
+                  {/* Header row */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-xl flex-shrink-0 shadow-lg"
+                        style={{ background: `linear-gradient(135deg, ${b.accentColor ?? '#2563eb'}, ${b.accentColor ?? '#2563eb'}99)` }}
+                      >
+                        {b.logoUrl
+                          ? <img src={b.logoUrl} alt={b.name} className="w-7 h-7 object-contain rounded" />
+                          : b.name.charAt(0).toUpperCase()
+                        }
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-white text-sm leading-tight truncate">{b.name}</div>
+                        <div className="text-[11px] text-slate-500 font-mono mt-0.5 truncate">
+                          /queue?brand=<span className="text-slate-400">{b.slug}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0 border ${
+                      b.isActive
+                        ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                        : 'bg-slate-500/10 border-slate-500/20 text-slate-400'
+                    }`}>
+                      {b.isActive ? '● Active' : '○ Inactive'}
                     </span>
                   </div>
-                  <div className="bg-navy-mid rounded-lg px-3 py-2 flex items-center gap-2">
-                    <Layers size={12} className="text-slate-400" />
-                    <span className="text-xs text-slate-300"><strong className="text-white">{b._count.departments}</strong> depts</span>
+
+                  {/* Stats row */}
+                  <div className="flex items-center gap-4 text-xs text-slate-400">
+                    <div className="flex items-center gap-1.5">
+                      <Layers size={11} />
+                      <span><strong className="text-slate-200">{b._count.departments}</strong> departments</span>
+                    </div>
+                    <div className="w-px h-3 bg-white/10" />
+                    <div className="flex items-center gap-1.5">
+                      <Users size={11} />
+                      <span>
+                        <strong className={b._count.users >= b.userLimit ? 'text-red-400' : 'text-slate-200'}>
+                          {b._count.users}
+                        </strong>
+                        <span className="text-slate-600"> / {b.userLimit} users</span>
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                {/* Queue URL */}
-                <div className="text-xs text-slate-500 font-mono bg-navy-mid rounded-lg px-3 py-2 truncate">
-                  /queue?brand={b.slug}
-                </div>
+                  {/* User limit progress */}
+                  <div>
+                    <div className="h-1.5 bg-navy-mid rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.min((b._count.users / b.userLimit) * 100, 100)}%`,
+                          background: b._count.users >= b.userLimit ? '#f87171' : (b.accentColor ?? '#2563eb'),
+                        }}
+                      />
+                    </div>
+                  </div>
 
-                {/* Actions */}
-                <div className="flex gap-2 pt-1 border-t border-white/5">
-                  <button
-                    onClick={() => openEdit(b)}
-                    className="flex-1 flex items-center justify-center gap-1.5 text-xs bg-navy-mid hover:bg-white/10 text-slate-300 rounded-lg py-2 transition"
-                  >
-                    <Pencil size={12} /> Edit
-                  </button>
-                  <button
-                    onClick={() => toggleActive(b)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 text-xs rounded-lg py-2 transition ${
-                      b.isActive
-                        ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400'
-                        : 'bg-green-500/10 hover:bg-green-500/20 text-green-400'
-                    }`}
-                  >
-                    <Power size={12} /> {b.isActive ? 'Deactivate' : 'Activate'}
-                  </button>
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => openEdit(b)}
+                      className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white rounded-xl py-2.5 transition"
+                    >
+                      <Pencil size={12} /> Edit
+                    </button>
+                    <button
+                      onClick={() => toggleActive(b)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium rounded-xl py-2.5 transition ${
+                        b.isActive
+                          ? 'bg-red-500/8 hover:bg-red-500/15 text-red-400 hover:text-red-300'
+                          : 'bg-green-500/8 hover:bg-green-500/15 text-green-400 hover:text-green-300'
+                      }`}
+                    >
+                      <Power size={12} /> {b.isActive ? 'Deactivate' : 'Activate'}
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ))}
