@@ -36,6 +36,7 @@ export default function QueuePage() {
   const [qrDataUrl,      setQrDataUrl]      = useState('')
   const [step,           setStep]           = useState<'select' | 'details' | 'ticket'>('select')
   const [deptLoading,    setDeptLoading]    = useState(true)
+  const [autoPrint,      setAutoPrint]      = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -43,7 +44,24 @@ export default function QueuePage() {
       .then((r) => r.json())
       .then((j) => { setDepartments(j.data ?? []); setDeptLoading(false) })
       .catch(() => setDeptLoading(false))
+
+    // Load auto-print preference from system settings
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((j) => {
+        const s: Array<{ key: string; value: string }> = j.data ?? []
+        setAutoPrint(s.find((x) => x.key === 'auto_print')?.value === 'true')
+      })
+      .catch(() => {})
   }, [])
+
+  // Auto-print when ticket step is shown and setting is enabled
+  useEffect(() => {
+    if (step !== 'ticket' || !ticket || !autoPrint) return
+    // Wait for QR code to render before triggering print
+    const t = setTimeout(() => window.print(), 900)
+    return () => clearTimeout(t)
+  }, [step, ticket, autoPrint])
 
   useEffect(() => {
     if (ticket) {

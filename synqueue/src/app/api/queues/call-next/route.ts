@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { getNextQueue } from '@/lib/queue-engine'
 import { broadcastQueueEvent } from '@/lib/socket'
 import { ok, err, unauthorized, audit } from '@/lib/utils'
 import { z } from 'zod'
@@ -21,32 +20,64 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return err(parsed.error.message)
 
   const { departmentId, counterId } = parsed.data
-
-  // Get next queue (respects priority settings)
-  const next = await getNextQueue(departmentId, counterId)
-  if (!next) return err('No queues waiting', 404)
-
   const now = new Date()
 
-  const updated = await prisma.queue.update({
-    where: { id: next.id },
-    data: {
-      status:          'SERVING',
-      counterId,
-      calledAt:        now,
-      servingStartedAt: now,
-      waitingDurationMs: now.getTime() - new Date(next.createdAt).getTime(),
-    },
-    include: { department: true, counter: { include: { staff: true } }, logs: true },
+  // Atomic transaction: find + update in one step so two counters
+  // under the same department never get assigned the same ticket.
+  const updated = await prisma.$transaction(async (tx) => {
+    // Priority ratio logic (inline so it runs inside the transaction)
+    const prioritySettings = await tx.prioritySetting.findMany({
+      where:   { enabled: true },
+      orderBy: { priorityLevel: 'asc' },
+    })
+    const minRatio = prioritySettings.length > 0
+      ? Math.min(...prioritySettings.map((p) => p.servingRatio))
+      : 2
+
+    const recentServed = await tx.queue.count({
+      where: {
+        departmentId,
+        counterId,
+        status:     'COMPLETED',
+        isPriority: false,
+        completedAt: { gte: new Date(Date.now() - 10 * 60 * 1000) },
+      },
+    })
+
+    const hasPriorityWaiting = await tx.queue.findFirst({
+      where: { departmentId, status: 'WAITING', isPriority: true },
+    })
+
+    const servePriority = hasPriorityWaiting && (recentServed >= minRatio || recentServed === 0)
+
+    const next = await tx.queue.findFirst({
+      where: {
+        departmentId,
+        status:     'WAITING',
+        isPriority: servePriority ? true : undefined,
+      },
+      orderBy: [{ isPriority: 'desc' }, { createdAt: 'asc' }],
+    })
+
+    if (!next) return null
+
+    return tx.queue.update({
+      where:   { id: next.id },
+      data:    {
+        status:            'SERVING',
+        counterId,
+        calledAt:          now,
+        servingStartedAt:  now,
+        waitingDurationMs: now.getTime() - new Date(next.createdAt).getTime(),
+      },
+      include: { department: true, counter: { include: { staff: true } }, logs: true },
+    })
   })
 
+  if (!updated) return err('No queues waiting', 404)
+
   await prisma.queueLog.create({
-    data: {
-      queueId:  updated.id,
-      action:   'CALLED',
-      userId:   session.user.id,
-      counterId,
-    },
+    data: { queueId: updated.id, action: 'CALLED', userId: session.user.id, counterId },
   })
 
   const counter = await prisma.counter.findUnique({ where: { id: counterId } })
