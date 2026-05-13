@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Pencil, Power, Loader2, Building, Users, Layers, X, Copy, Check, Link2 } from 'lucide-react'
+import { Plus, Pencil, Power, Loader2, Building, Users, Layers, X, Copy, Check, Link2, UserPlus, Eye, EyeOff, RefreshCw, ShieldCheck } from 'lucide-react'
 
 interface Brand {
   id:          string
@@ -28,10 +28,72 @@ export default function BrandsPage() {
   const [saving,    setSaving]    = useState(false)
   const [form,      setForm]      = useState(EMPTY_FORM)
   const [error,     setError]     = useState('')
-  const [copied,    setCopied]    = useState<string | null>(null)
-  const [mounted,   setMounted]   = useState(false)
+  const [copied,       setCopied]       = useState<string | null>(null)
+  const [mounted,      setMounted]      = useState(false)
+  // Admin generation modal
+  const [adminModal,   setAdminModal]   = useState<Brand | null>(null)
+  const [adminForm,    setAdminForm]    = useState({ name: '', email: '', password: '' })
+  const [adminSaving,  setAdminSaving]  = useState(false)
+  const [adminError,   setAdminError]   = useState('')
+  const [adminDone,    setAdminDone]    = useState<{ email: string; password: string } | null>(null)
+  const [showPwd,      setShowPwd]      = useState(false)
+  const [copiedField,  setCopiedField]  = useState<string | null>(null)
 
   useEffect(() => setMounted(true), [])
+
+  function generatePassword() {
+    const upper  = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+    const lower  = 'abcdefghjkmnpqrstuvwxyz'
+    const digits = '23456789'
+    const special = '@#$%!'
+    const all = upper + lower + digits + special
+    const rand = (s: string) => s[Math.floor(Math.random() * s.length)]
+    // Ensure at least one of each type
+    const base = rand(upper) + rand(lower) + rand(digits) + rand(special)
+    const rest = Array.from({ length: 8 }, () => rand(all)).join('')
+    return (base + rest).split('').sort(() => Math.random() - 0.5).join('')
+  }
+
+  function openAdminModal(b: Brand) {
+    setAdminModal(b)
+    setAdminForm({
+      name:     `${b.name} Admin`,
+      email:    `admin@${b.slug}.com`,
+      password: generatePassword(),
+    })
+    setAdminError('')
+    setAdminDone(null)
+    setShowPwd(false)
+  }
+
+  function copyField(text: string, key: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedField(key)
+      setTimeout(() => setCopiedField(null), 2000)
+    })
+  }
+
+  async function handleCreateAdmin() {
+    if (!adminModal) return
+    setAdminSaving(true)
+    setAdminError('')
+    const res  = await fetch('/api/users', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        name:     adminForm.name,
+        email:    adminForm.email,
+        password: adminForm.password,
+        role:     'ADMIN',
+        brandId:  adminModal.id,
+      }),
+    })
+    const json = await res.json()
+    setAdminSaving(false)
+    if (!json.success) { setAdminError(json.error ?? 'Something went wrong'); return }
+    setAdminDone({ email: adminForm.email, password: adminForm.password })
+    load()
+  }
 
   async function load() {
     const res  = await fetch('/api/brands')
@@ -220,22 +282,28 @@ export default function BrandsPage() {
                   </button>
 
                   {/* Actions */}
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       onClick={() => openEdit(b)}
-                      className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white rounded-xl py-2.5 transition"
+                      className="flex items-center justify-center gap-1.5 text-xs font-medium bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white rounded-xl py-2.5 transition"
                     >
                       <Pencil size={12} /> Edit
                     </button>
                     <button
+                      onClick={() => openAdminModal(b)}
+                      className="flex items-center justify-center gap-1.5 text-xs font-medium bg-brand/10 hover:bg-brand/20 text-brand-light rounded-xl py-2.5 transition"
+                    >
+                      <UserPlus size={12} /> Admin
+                    </button>
+                    <button
                       onClick={() => toggleActive(b)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium rounded-xl py-2.5 transition ${
+                      className={`flex items-center justify-center gap-1.5 text-xs font-medium rounded-xl py-2.5 transition ${
                         b.isActive
                           ? 'bg-red-500/8 hover:bg-red-500/15 text-red-400 hover:text-red-300'
                           : 'bg-green-500/8 hover:bg-green-500/15 text-green-400 hover:text-green-300'
                       }`}
                     >
-                      <Power size={12} /> {b.isActive ? 'Deactivate' : 'Activate'}
+                      <Power size={12} /> {b.isActive ? 'Off' : 'On'}
                     </button>
                   </div>
                 </div>
@@ -245,7 +313,147 @@ export default function BrandsPage() {
         </div>
       )}
 
-      {/* Create / Edit modal — rendered via portal to escape CSS transform stacking context */}
+      {/* ── Generate Admin modal ── */}
+      {mounted && createPortal(
+        <AnimatePresence>
+          {adminModal && (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{   opacity: 0, scale: 0.95 }}
+                className="bg-navy-card border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Generate Admin Account</h2>
+                    <p className="text-xs text-slate-400 mt-0.5">For <strong className="text-slate-300">{adminModal.name}</strong></p>
+                  </div>
+                  <button onClick={() => setAdminModal(null)} className="text-slate-400 hover:text-white transition">
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {adminDone ? (
+                  /* ── Success: show credentials ── */
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3">
+                      <ShieldCheck size={16} className="text-green-400 flex-shrink-0" />
+                      <p className="text-sm text-green-300 font-medium">Admin account created! Save these credentials.</p>
+                    </div>
+
+                    <div className="bg-amber-500/8 border border-amber-500/20 rounded-xl px-4 py-2.5">
+                      <p className="text-xs text-amber-400">⚠ This is the only time the password is shown. Copy it now.</p>
+                    </div>
+
+                    {[
+                      { label: 'Email', value: adminDone.email,    key: 'email' },
+                      { label: 'Password', value: adminDone.password, key: 'password' },
+                    ].map(({ label, value, key }) => (
+                      <div key={key}>
+                        <label className="block text-xs font-medium text-slate-400 mb-1">{label}</label>
+                        <div className="flex items-center gap-2 bg-navy-mid border border-white/8 rounded-xl px-3 py-2.5">
+                          <span className="flex-1 font-mono text-sm text-white truncate">{value}</span>
+                          <button
+                            onClick={() => copyField(value, key)}
+                            className="flex items-center gap-1 text-xs text-slate-400 hover:text-white transition flex-shrink-0"
+                          >
+                            {copiedField === key
+                              ? <><Check size={12} className="text-green-400" /><span className="text-green-400">Copied</span></>
+                              : <><Copy size={12} /><span>Copy</span></>
+                            }
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    <button
+                      onClick={() => setAdminModal(null)}
+                      className="w-full bg-brand hover:bg-brand-dark text-white font-medium rounded-xl py-2.5 text-sm transition mt-2"
+                    >
+                      Done
+                    </button>
+                  </div>
+                ) : (
+                  /* ── Form ── */
+                  <div className="space-y-4">
+                    {adminError && (
+                      <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-2.5">
+                        {adminError}
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">Admin Name</label>
+                      <input
+                        value={adminForm.name}
+                        onChange={(e) => setAdminForm((f) => ({ ...f, name: e.target.value }))}
+                        className="w-full bg-navy-mid border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand/60"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
+                      <input
+                        value={adminForm.email}
+                        onChange={(e) => setAdminForm((f) => ({ ...f, email: e.target.value }))}
+                        className="w-full bg-navy-mid border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand/60"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-sm font-medium text-slate-300">Password</label>
+                        <button
+                          onClick={() => setAdminForm((f) => ({ ...f, password: generatePassword() }))}
+                          className="flex items-center gap-1 text-xs text-brand-light hover:text-white transition"
+                        >
+                          <RefreshCw size={11} /> Regenerate
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 bg-navy-mid border border-white/8 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-brand/60">
+                        <input
+                          type={showPwd ? 'text' : 'password'}
+                          value={adminForm.password}
+                          onChange={(e) => setAdminForm((f) => ({ ...f, password: e.target.value }))}
+                          className="flex-1 bg-transparent px-3 py-2.5 text-sm text-white font-mono focus:outline-none"
+                        />
+                        <button
+                          onClick={() => setShowPwd((v) => !v)}
+                          className="pr-3 text-slate-400 hover:text-white transition"
+                        >
+                          {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-1">
+                      <button
+                        onClick={() => setAdminModal(null)}
+                        className="flex-1 bg-navy-mid border border-white/8 text-white rounded-lg py-2.5 text-sm"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleCreateAdmin}
+                        disabled={adminSaving}
+                        className="flex-1 flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark disabled:opacity-60 text-white rounded-lg py-2.5 text-sm font-medium transition"
+                      >
+                        {adminSaving ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
+                        Create Admin
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* ── Create / Edit brand modal ── */}
       {mounted && createPortal(
         <AnimatePresence>
         {showForm && (
