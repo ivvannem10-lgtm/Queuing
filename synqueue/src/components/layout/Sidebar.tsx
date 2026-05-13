@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import type { Role } from '@/types'
 import {
   LayoutDashboard, Building2, Monitor, Users, BarChart2,
-  Shield, Settings, LogOut, Tv, Layers, ChevronRight, Briefcase,
+  Shield, Settings, LogOut, Tv, Layers, ChevronRight, Briefcase, ClipboardList,
 } from 'lucide-react'
 
 interface NavItem {
@@ -23,6 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/admin/departments', label: 'Departments', icon: Building2,       roles: ['ADMIN', 'SUPER_ADMIN'] },
   { href: '/admin/counters',    label: 'Counters',    icon: Monitor,         roles: ['ADMIN', 'SUPER_ADMIN'] },
   { href: '/admin/users',       label: 'Users',       icon: Users,           roles: ['ADMIN', 'SUPER_ADMIN'] },
+  { href: '/admin/records',     label: 'Records',     icon: ClipboardList,   roles: ['ADMIN', 'SUPER_ADMIN'] },
   { href: '/admin/reports',     label: 'Reports',     icon: BarChart2,       roles: ['ADMIN', 'SUPER_ADMIN'] },
   { href: '/admin/audit-logs',  label: 'Audit Logs',  icon: Shield,          roles: ['SUPER_ADMIN'] },
   { href: '/admin/settings',    label: 'Settings',    icon: Settings,        roles: ['ADMIN', 'SUPER_ADMIN'] },

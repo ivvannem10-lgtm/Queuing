@@ -66,19 +66,19 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ── GET /api/queues — List queues ────────────────────────────────────────────
+// ── GET /api/queues — List queues (live/staff use) ───────────────────────────
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const departmentId     = searchParams.get('departmentId')
   const counterId        = searchParams.get('counterId')
   const statusRaw        = searchParams.get('status')
   const limit            = parseInt(searchParams.get('limit') ?? '50')
-  const statuses         = statusRaw?.split(',') ?? []
+  const statuses         = statusRaw?.split(',').filter(Boolean) ?? []
 
   const where: any = {}
-  if (departmentId) where.departmentId = departmentId
-  if (counterId)    where.counterId    = counterId
-  if (statuses.length) where.status    = { in: statuses }
+  if (departmentId)    where.departmentId = departmentId
+  if (counterId)       where.counterId    = counterId
+  if (statuses.length) where.status       = { in: statuses }
 
   const queues = await prisma.queue.findMany({
     where,
