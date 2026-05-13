@@ -18,10 +18,11 @@ export type {
 
 // ── Augmented session user ───────────────────────────────────────────────────
 export interface SessionUser {
-  id:    string
-  name:  string
-  email: string
-  role:  Role
+  id:      string
+  name:    string
+  email:   string
+  role:    Role
+  brandId: string | null
 }
 
 // ── API response shapes ──────────────────────────────────────────────────────

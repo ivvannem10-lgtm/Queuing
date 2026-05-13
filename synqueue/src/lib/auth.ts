@@ -30,10 +30,11 @@ export const authOptions: NextAuthOptions = {
         if (!valid) return null
 
         return {
-          id:    user.id,
-          name:  user.name,
-          email: user.email,
-          role:  user.role as import('@/types').Role,
+          id:      user.id,
+          name:    user.name,
+          email:   user.email,
+          role:    user.role as import('@/types').Role,
+          brandId: user.brandId ?? null,
         }
       },
     }),
@@ -42,14 +43,16 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id   = user.id
-        token.role = (user as any).role as import('@/types').Role
+        token.role    = (user as any).role    as import('@/types').Role
+        token.brandId = (user as any).brandId as string | null
       }
       return token
     },
     async session({ session, token }: { session: Session; token: JWT }) {
       if (token && session.user) {
-        session.user.id   = token.id as string
-        session.user.role = token.role as import('@/types').Role
+        session.user.id      = token.id      as string
+        session.user.role    = token.role    as import('@/types').Role
+        session.user.brandId = token.brandId as string | null
       }
       return session
     },
@@ -84,21 +87,24 @@ export const authOptions: NextAuthOptions = {
 declare module 'next-auth' {
   interface Session {
     user: {
-      id:    string
-      name:  string
-      email: string
-      role:  import('@/types').Role
+      id:      string
+      name:    string
+      email:   string
+      role:    import('@/types').Role
+      brandId: string | null
     }
   }
   interface User {
-    id:   string
-    role: import('@/types').Role
+    id:      string
+    role:    import('@/types').Role
+    brandId: string | null
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
-    id:   string
-    role: import('@/types').Role
+    id:      string
+    role:    import('@/types').Role
+    brandId: string | null
   }
 }

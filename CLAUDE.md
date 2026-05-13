@@ -15,9 +15,9 @@ queuing system/
 ### Commands (run from `synqueue/`)
 
 ```bash
-npm run dev          # Start dev server (tsx watch server.ts — NOT next dev)
+npm run dev          # Start dev server (next dev)
 npm run build        # Build for production
-npm run start        # Production server
+npm run start        # Production server (next start)
 npm run lint         # ESLint
 
 npm run db:push      # Push schema to DB (no migration file)
@@ -28,20 +28,18 @@ npm run db:studio    # Open Prisma Studio GUI
 npm run db:reset     # Drop and re-apply all migrations (destructive)
 ```
 
-### Custom server — critical detail
-
-`npm run dev` runs `tsx watch server.ts`, not `next dev`. Socket.IO is attached to the same HTTP server that handles Next.js requests. **Never use `next dev` directly** — real-time events won't work. The Socket.IO instance is stored as `global.__io` and retrieved in API routes via `getIO()` from `src/lib/socket.ts`.
-
 ### Database
 
-The schema (`prisma/schema.prisma`) is configured for **SQLite** in local dev (`file:./dev.db`). The README mentions PostgreSQL, but the active `.env.local` uses SQLite. Switch to PostgreSQL by changing `provider` in `schema.prisma` and updating `DATABASE_URL`.
+The schema (`prisma/schema.prisma`) uses **PostgreSQL**. For local dev, point `DATABASE_URL` to a local or hosted Postgres instance (e.g. Neon free tier). There is no SQLite fallback.
 
 ### Environment
 
 Copy `.env.example` to `.env.local`. Required vars:
-- `DATABASE_URL` — SQLite path or PostgreSQL connection string
+- `DATABASE_URL` — PostgreSQL connection string
 - `NEXTAUTH_SECRET` — generate with `openssl rand -base64 32`
 - `NEXTAUTH_URL` — base URL (e.g. `http://localhost:3000`)
+- `PUSHER_APP_ID`, `PUSHER_KEY`, `PUSHER_SECRET`, `PUSHER_CLUSTER` — server-side Pusher credentials
+- `NEXT_PUBLIC_PUSHER_KEY`, `NEXT_PUBLIC_PUSHER_CLUSTER` — client-side Pusher credentials (same values as above)
 
 ### Architecture
 
@@ -62,17 +60,17 @@ All queue business logic lives here. Key functions:
 - `transferQueue` — marks original TRANSFERRED, creates new queue in target dept, writes `QueueTransfer` record
 - `updateFrontlinerStats` / `updateCounterStats` — upsert daily statistics
 
-**Real-time flow**: API route handles request → calls `broadcastQueueEvent()` or targeted `emitTo*()` → Socket.IO emits to rooms (`display`, `admin`, `dept:<id>`, `counter:<id>`). Clients join rooms on connect via `join:department`, `join:counter`, `join:admin`, `join:display` events.
+**Real-time flow** (`src/lib/pusher.ts`, `src/lib/socket.ts`):
+API route handles request → calls `broadcastQueueEvent()` or targeted `emitTo*()` in `src/lib/socket.ts` → triggers Pusher channels. Clients subscribe via `pusher-js` directly in page components. Channel naming uses hyphens (Pusher doesn't allow colons): `dept-<id>`, `counter-<id>`, `display`, `admin`.
 
-**Socket.IO rooms** (`server.ts`):
+**Pusher channels**:
 - `display` — public TV screen
 - `admin` — admin dashboard
-- `dept:<departmentId>` — per-department updates
-- `counter:<counterId>` — per-counter updates
+- `dept-<departmentId>` — per-department updates
+- `counter-<counterId>` — per-counter updates
 
-### Shared types
-
-`src/types/index.ts` re-exports Prisma types and defines augmented relation types (`QueueWithRelations`, `CounterWithRelations`, etc.), `ApiResponse<T>`, socket event payload interfaces, and `SOCKET_EVENTS` const map.
+**Shared types** (`src/types/index.ts`):
+Defines augmented relation types (`QueueWithRelations`, `CounterWithRelations`, etc.), `ApiResponse<T>`, and `SOCKET_EVENTS` const map. Also defines `Role`, `QueueStatus`, `PriorityType`, `CounterStatus`, `DepartmentStatus` as string union types — these are **not** Prisma-generated enums (the schema uses `String` fields).
 
 ### Default seed credentials
 

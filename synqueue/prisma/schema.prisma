@@ -7,6 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ── Brands ───────────────────────────────────────────────────────────────────
+
+model Brand {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logoUrl     String?
+  accentColor String?  @default("#2563eb")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  departments Department[]
+
+  @@index([slug])
+}
+
 // ── Users ────────────────────────────────────────────────────────────────────
 
 model User {
@@ -17,8 +35,11 @@ model User {
   role      String   @default("STAFF")   // SUPER_ADMIN | ADMIN | STAFF | CLIENT
   isActive  Boolean  @default(true)
   avatarUrl String?
+  brandId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  brand     Brand? @relation(fields: [brandId], references: [id])
 
   departments   UserDepartment[]
   counters      Counter[]             @relation("CounterStaff")
@@ -40,8 +61,11 @@ model Department {
   description String?
   status      String   @default("ACTIVE")  // ACTIVE | INACTIVE
   sortOrder   Int      @default(0)
+  brandId     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  brand       Brand? @relation(fields: [brandId], references: [id])
 
   counters   Counter[]
   queues     Queue[]

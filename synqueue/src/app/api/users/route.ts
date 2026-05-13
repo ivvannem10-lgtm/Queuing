@@ -6,6 +6,8 @@ import bcrypt from 'bcryptjs'
 import { ok, err, unauthorized, audit } from '@/lib/utils'
 import { z } from 'zod'
 
+const USER_LIMIT_PER_BRAND = 15
+
 const CreateSchema = z.object({
   name:          z.string().min(1),
   email:         z.string().email(),
@@ -13,6 +15,7 @@ const CreateSchema = z.object({
   role:          z.enum(['SUPER_ADMIN', 'ADMIN', 'STAFF', 'CLIENT']).default('STAFF'),
   departmentIds: z.array(z.string()).default([]),
   isActive:      z.boolean().default(true),
+  brandId:       z.string().optional(),
 })
 
 export async function GET(req: NextRequest) {
@@ -20,14 +23,19 @@ export async function GET(req: NextRequest) {
   if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) return unauthorized()
 
   const roleFilter = req.nextUrl.searchParams.get('role')
+
+  // Admins only see users in their brand; super admins see all
   const where: any = {}
   if (roleFilter) where.role = roleFilter
+  if (session.user.role === 'ADMIN' && session.user.brandId) {
+    where.brandId = session.user.brandId
+  }
 
   const users = await prisma.user.findMany({
     where,
     select: {
       id: true, name: true, email: true, role: true,
-      isActive: true, createdAt: true,
+      isActive: true, createdAt: true, brandId: true,
       departments: { include: { department: { select: { id: true, name: true, prefix: true } } } },
     },
     orderBy: { createdAt: 'desc' },
@@ -44,6 +52,19 @@ export async function POST(req: NextRequest) {
   const parsed = CreateSchema.safeParse(body)
   if (!parsed.success) return err(parsed.error.message)
 
+  // Determine which brand this user belongs to
+  const brandId = session.user.role === 'SUPER_ADMIN'
+    ? (parsed.data.brandId ?? null)
+    : session.user.brandId
+
+  // Enforce 15-user limit for admins (super admins are exempt)
+  if (session.user.role === 'ADMIN' && brandId) {
+    const count = await prisma.user.count({ where: { brandId } })
+    if (count >= USER_LIMIT_PER_BRAND) {
+      return err(`User limit reached. Your plan allows up to ${USER_LIMIT_PER_BRAND} users. Contact your Super Admin to add more.`, 403)
+    }
+  }
+
   const exists = await prisma.user.findUnique({ where: { email: parsed.data.email } })
   if (exists) return err('A user with this email already exists')
 
@@ -56,6 +77,7 @@ export async function POST(req: NextRequest) {
       password: hashed,
       role:     parsed.data.role,
       isActive: parsed.data.isActive,
+      brandId:  brandId ?? null,
       departments: {
         create: parsed.data.departmentIds.map((id) => ({ departmentId: id })),
       },

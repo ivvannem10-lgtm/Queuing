@@ -39,6 +39,7 @@ export default withAuth(
           pathname.startsWith('/api/departments') ||
           pathname.startsWith('/api/analytics') ||
           pathname.startsWith('/api/settings') ||
+          pathname.startsWith('/api/brands') ||
           pathname === '/'
         ) {
           return true

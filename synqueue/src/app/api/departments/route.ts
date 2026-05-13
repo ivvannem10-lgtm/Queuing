@@ -13,8 +13,17 @@ const CreateSchema = z.object({
 })
 
 export async function GET(req: NextRequest) {
-  const status = req.nextUrl.searchParams.get('status')
-  const where  = status ? { status: status as any } : {}
+  const status    = req.nextUrl.searchParams.get('status')
+  const brandSlug = req.nextUrl.searchParams.get('brand')
+
+  const where: any = {}
+  if (status) where.status = status
+
+  // Filter by brand slug if provided (for multi-brand queue page)
+  if (brandSlug) {
+    const brand = await prisma.brand.findUnique({ where: { slug: brandSlug } })
+    where.brandId = brand?.id ?? '__none__'
+  }
 
   const departments = await prisma.department.findMany({
     where,
@@ -36,7 +45,10 @@ export async function POST(req: NextRequest) {
   const exists = await prisma.department.findFirst({ where: { prefix: parsed.data.prefix } })
   if (exists) return err('A department with this prefix already exists')
 
-  const dept = await prisma.department.create({ data: parsed.data })
+  // Auto-assign brand from admin's session
+  const brandId = session.user.role === 'ADMIN' ? (session.user.brandId ?? null) : null
+
+  const dept = await prisma.department.create({ data: { ...parsed.data, brandId } })
   audit('CREATE', 'Department', dept.id, session.user.id, { name: dept.name })
 
   return ok(dept, 201)
