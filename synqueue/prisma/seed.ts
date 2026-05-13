@@ -86,41 +86,9 @@ async function main() {
     },
   })
 
-  const staffUsers = [
-    { name: 'Maria Santos',    email: 'maria@synqueue.com',  prefix: 'REG'  },
-    { name: 'Juan Dela Cruz',  email: 'juan@synqueue.com',   prefix: 'REG'  },
-    { name: 'Ana Reyes',       email: 'ana@synqueue.com',    prefix: 'CASH' },
-    { name: 'Carlos Bautista', email: 'carlos@synqueue.com', prefix: 'ADM'  },
-    { name: 'Elena Garcia',    email: 'elena@synqueue.com',  prefix: 'GDN'  },
-  ]
-
-  const staffPwd = await bcrypt.hash('Staff@123', 12)
+  // Staff users are created by admins — no default staff seeded
   const createdStaff: Array<{ id: string; prefix: string }> = []
-
-  for (const s of staffUsers) {
-    const user = await prisma.user.upsert({
-      where: { email: s.email },
-      update: {},
-      create: {
-        name:     s.name,
-        email:    s.email,
-        password: staffPwd,
-        role:     'STAFF',
-        isActive: true,
-      },
-    })
-    // Assign to department
-    const deptId = departments[s.prefix]
-    if (deptId) {
-      await prisma.userDepartment.upsert({
-        where: { userId_departmentId: { userId: user.id, departmentId: deptId } },
-        update: {},
-        create: { userId: user.id, departmentId: deptId, isPrimary: true },
-      })
-    }
-    createdStaff.push({ id: user.id, prefix: s.prefix })
-  }
-  console.log(`✅  ${staffUsers.length + 2} users seeded`)
+  console.log(`✅  2 users seeded (Super Admin + Admin)`)
 
   // ── Counters ───────────────────────────────────────────────
   const counterConfig: Record<string, number> = {
